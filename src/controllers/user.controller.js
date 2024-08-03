@@ -5,7 +5,6 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
 import mongoose from "mongoose";
-import { response } from "express";
 
 
 const generateAccessAndRefreshToken = async (userId) => {
@@ -109,7 +108,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: { refreshToken: undefined }
+            $unset: { refreshToken: 1 }//this removes the refresh token from document}
         },
         {
             new: true
@@ -125,7 +124,7 @@ const logoutUser = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, "user logged out succefully"));
 })
 const refreshAccessToken = asyncHandler(async (req, res) => {
-    const incomingRefreshToken = req.cookies.refreshToken || req.header.refreshToken
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
     if (!incomingRefreshToken) {
         throw new ApiError(401, "unautherized request")
     }
@@ -213,8 +212,8 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
             avatar: avatar.url
         }, {
             new: true
-        }.select("-password")
-    )
+        }).select("-password")
+    
     return res
         .status(200)
         .json(new ApiResponse(200, user, "avatar updated"))
@@ -234,15 +233,17 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
             coverImage: coverImage.url
         }, {
             new: true
-        }.select("-password")
-    )
+        }).select("-password")
+    if(!user){
+        throw new ApiError(400, "error while updating in database") 
+    }
     return res
         .status(200)
         .json(new ApiResponse(200, user, "coverImage updated"))
 
 })
 const getUserChannelProfile = asyncHandler(async (req, res) => {
-    const { username } = req.param
+    const { username } = req.params
     if (!username?.trim()) {
         throw new ApiError(400, "username is required")
     }
@@ -275,7 +276,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
                     $size: "$subscribers"
                 },
                 channelSubscribedToCount: {
-                    $size: "subscribedTo"
+                    $size: "$subscribedTo"
                 },
                 isSubscribed: {
                     $cond: {
@@ -302,6 +303,10 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         }
     ])
     console.log(channel);
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200,channel[0],"channel details found"))
 })
 const getWatchHistory = asyncHandler(async (req, res) => {
     const user = await User.aggregate([
