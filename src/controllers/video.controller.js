@@ -43,7 +43,6 @@ const getAllVideos = asyncHandler(async (req, res) => {
                 as: "ownerDetails"
             }
         },
-        { $unwind: '$ownerDetails' },
         {
             $project: {
                 videoFile: 1,

@@ -4,8 +4,10 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
+
 const getVideoComments = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
+
     if (!videoId) {
         throw new ApiError(400, "Video ID is not specified");
     }
@@ -18,29 +20,63 @@ const getVideoComments = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid page or limit number");
     }
 
-    const comments = await Comment.find({ video: videoId })
-        .skip((pageNumber - 1) * limitNumber)
-        .limit(limitNumber);
+    // Define aggregation pipeline with pagination
+    const comments = await Comment.aggregate([
+        { $match: { video:new mongoose.Types.ObjectId(videoId) } },
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'owner', // Correct the field name
+                foreignField: '_id',
+                as: 'userDetails',
+                pipeline:[
+                    {
+                        $project:{
+                            _id:1,
+                            username:1
+                        }
+                    }
+                ]
+            }
+        },
+        { $unwind: '$userDetails' }, // Unwind the userDetails array
+        { $skip: (pageNumber - 1) * limitNumber }, // Skip the documents for pagination
+        { $limit: limitNumber }, // Limit the number of documents returned
+        {
+            $project: {
+                _id: 1,
+                content: 1, // Ensure 'content' field is used as per schema
+                createdAt: 1,
+                video:1,
+                userDetails: 1
+            }
+        }
+    ]);
 
-    if (!comments || comments.length === 0) {
+    // Perform the aggregation with pagination
+    // const comments = await aggregate.exec();
+
+    // Check if comments are found
+    if (comments.length === 0) {
         throw new ApiError(404, "No comments found for this video");
     }
 
+    // Send response with pagination details
     return res
         .status(200)
-        .json
-        (
-            new ApiResponse
-                (
-                    200,
-                    comments,
-                    "All comments fetched successfully"
-                )
-        );
+        .json(new ApiResponse(200, comments, "All comments fetched successfully", {
+            page: pageNumber,
+            limit: limitNumber
+        }));
 });
+
+export default getVideoComments;
 
 const addComment = asyncHandler(async (req, res) => {
     const { content } = req.body;
+    const userId = req.user._id
+    console.log(userId);
+    
     if (!content || content.trim() === "") {
         throw new ApiError(400, "Please write something in the comment section");
     }
@@ -53,7 +89,7 @@ const addComment = asyncHandler(async (req, res) => {
     const newComment = new Comment({
         video: videoId,
         content,
-        user: req.user._id // Make sure req.user is populated by authentication middleware
+        owner: userId// Make sure req.user is populated by authentication middleware
     });
 
     await newComment.save();
@@ -109,13 +145,11 @@ const deleteComment = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Comment ID is required");
     }
 
-    const comment = await Comment.findById(commentId);
+    const comment = await Comment.findByIdAndDelete(commentId);
 
     if (!comment) {
         throw new ApiError(404, "Comment not found");
     }
-
-    await comment.remove();
 
     return res
         .status(200)
