@@ -70,8 +70,6 @@ const getVideoComments = asyncHandler(async (req, res) => {
         }));
 });
 
-export default getVideoComments;
-
 const addComment = asyncHandler(async (req, res) => {
     const { content } = req.body;
     const userId = req.user._id
