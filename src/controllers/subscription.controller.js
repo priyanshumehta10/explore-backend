@@ -16,11 +16,11 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     if(!isValidObjectId(userId)){
         throw new ApiError(400,"Invalid userId")
     }
-    const subscription = await Subscription.find({
+    const subscription = await Subscription.findOne({
         subscriber:userId,
         channel:channelId
     })
-    if(!subscription){
+    if(subscription){
         await Subscription.deleteOne({
             subscriber:userId,
             channel:channelId
@@ -70,7 +70,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
         }
     ]);
 
-    res.status(200).json(new ApiResponse(200, "Subscribers retrieved successfully", subscribers));
+    res.status(200).json(new ApiResponse(200, subscribers[0],"Subscribers retrieved successfully"));
 });
 
 // controller to return channel list to which user has subscribed
@@ -111,7 +111,7 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
     ])
     return res
     .status(200)
-    .json(new ApiResponse(200,channelsToSubscribe,"channel retrieved successfully"))
+    .json(new ApiResponse(200,channelsToSubscribe[0],"channel retrieved successfully"))
 })
 
 export {

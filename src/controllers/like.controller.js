@@ -73,7 +73,20 @@ const getLikedVideos = asyncHandler(async (req, res) => {
                 from:"videos",
                 localField:"video",
                 foreignField:"_id",
-                as:"videoDetails"
+                as:"videoDetails",
+                pipeline:([
+                    {
+                        $project:{
+                            _id:1,
+                            thumbnail:1,
+                            title:1,
+                            duration:1,
+                            views:1,
+                            isPublished:1,
+                            createdAt:1
+                        }
+                    }
+                ])
             }
         },
         {
@@ -85,7 +98,7 @@ const getLikedVideos = asyncHandler(async (req, res) => {
         throw new ApiError(400, "No liked videos found");
     }
 
-    return res.status(200).json(new ApiResponse(200, likes, "All liked videos found by a specific user"));
+    return res.status(200).json(new ApiResponse(200, likes[0], "All liked videos found by a specific user"));
 });
 
 export {

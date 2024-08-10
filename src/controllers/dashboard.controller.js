@@ -44,7 +44,7 @@ const getChannelVideos = asyncHandler(async (req, res) => {
         throw new ApiError("No videos found for this channel", 404);
     }
 
-    res.status(200).json(new ApiResponse(videos));
+    res.status(200).json(new ApiResponse(200,videos[0],"all channel videos"));
 });
 
 export {

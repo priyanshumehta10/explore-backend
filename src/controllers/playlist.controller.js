@@ -38,81 +38,81 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
     }
     return res
     .status(200)
-    .json(new ApiResponse(200,playlist,"playlists fetched successfully"))
+    .json(new ApiResponse(200,playlist[0],"playlists fetched successfully"))
 })
 
 const getPlaylistById = asyncHandler(async (req, res) => {
-    const {playlistId} = req.params
+    const { playlistId } = req.params;
 
-    //TODO: get playlist by id
     const playlist = await Playlist.aggregate([
         {
-            $match: {_id : new mongoose.Types.ObjectId(playlistId)}
+            $match: { _id: new mongoose.Types.ObjectId(playlistId) }
         },
         {
-            $lookup:{
+            $lookup: {
                 from: "users",
-                localField:"owner",
-                foreignField:"_id",
-                as:"ownerDetails",
-                pipeline:([
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerDetails",
+                pipeline: [
                     {
-                        $project:{
-                            username:1,
-                            avatar:1,
-                            _id:1
+                        $project: {
+                            username: 1,
+                            avatar: 1,
+                            _id: 1
                         }
                     }
-                ])
+                ]
             }
         },
         {
-            $lookup:{
-                from:"videos",
-                localField:"videos",
-                foreignField:"_id",
-                as:"videosDetails",
-                pipeline:(
-                    [
-                        {
-                            $project:{
-                                _id:1,
-                                thumbnail:1,
-                                title:1,
-                                views:1,
-                                isPublished:1,
-                                owner:1,
-                                duration:1,
-                                createdAt:1,
-                                
-                            }
+            $lookup: {
+                from: "videos",
+                localField: "videos",
+                foreignField: "_id",
+                as: "videosDetails",
+                pipeline: [
+                    {
+                        $project: {
+                            _id: 1,
+                            thumbnail: 1,
+                            title: 1,
+                            views: 1,
+                            isPublished: 1,
+                            owner: 1,
+                            duration: 1,
+                            createdAt: 1,
                         }
-                    ]
-                )
+                    }
+                ]
             }
         },
         {
-            $unwind:"$ownerDetails"
+            $unwind: "$ownerDetails"
         },
         {
-            $project:{
-                _id:1,
-                name:1,
-                description:1,
-                createdAt:1,
-                ownerDetails:1,
-                videosDetails:1
+            $project: {
+                _id: 1,
+                name: 1,
+                description: 1,
+                createdAt: 1,
+                ownerDetails: 1,
+                videosDetails: 1 
             }
         }
-    ])
-    if(!playlist) {
-        throw new ApiError(400,"something went wrong with getting the playlist by id from the database")
-    }
-    return res
-    .status(200)
-    .json(new ApiResponse(200,playlist,"playlists fetched successfully"))
+    ]);
 
-})
+
+    if (!playlist || playlist.length === 0) {
+        throw new ApiError(400, "Something went wrong with getting the playlist by ID from the database");
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, playlist[0], "Playlist fetched successfully"));
+});
+
+
 
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
     const {playlistId, videoId} = req.params

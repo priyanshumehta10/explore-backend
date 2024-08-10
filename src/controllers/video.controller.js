@@ -71,7 +71,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
             options
         );
 
-        res.status(200).json(result);
+        res.status(200).json(new ApiResponse(200,result,"get all videos successfully"));
     } catch (error) {
         console.error("Error during aggregation:", error);
         res.status(500).json({ message: 'Failed to fetch videos', error: error.message });
