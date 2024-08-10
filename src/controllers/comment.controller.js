@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import {mongoose,isValidObjectId} from "mongoose";
 import { Comment } from "../models/comment.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -20,7 +20,6 @@ const getVideoComments = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid page or limit number");
     }
 
-    // Define aggregation pipeline with pagination
     const comments = await Comment.aggregate([
         { $match: { video:new mongoose.Types.ObjectId(videoId) } },
         {
@@ -45,7 +44,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
         {
             $project: {
                 _id: 1,
-                content: 1, // Ensure 'content' field is used as per schema
+                content: 1, 
                 createdAt: 1,
                 video:1,
                 userDetails: 1
@@ -53,15 +52,10 @@ const getVideoComments = asyncHandler(async (req, res) => {
         }
     ]);
 
-    // Perform the aggregation with pagination
-    // const comments = await aggregate.exec();
-
-    // Check if comments are found
     if (comments.length === 0) {
         throw new ApiError(404, "No comments found for this video");
     }
 
-    // Send response with pagination details
     return res
         .status(200)
         .json(new ApiResponse(200, comments, "All comments fetched successfully", {
@@ -141,6 +135,9 @@ const deleteComment = asyncHandler(async (req, res) => {
 
     if (!commentId) {
         throw new ApiError(400, "Comment ID is required");
+    }
+    if(!isValidObjectId(commentId)) {
+        throw new ApiError(400, "Comment ID is not valid");
     }
 
     const comment = await Comment.findByIdAndDelete(commentId);

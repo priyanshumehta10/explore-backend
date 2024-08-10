@@ -43,6 +43,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
                 as: "ownerDetails"
             }
         },
+        { $unwind: "$ownerDetails" }, 
         {
             $project: {
                 videoFile: 1,
@@ -54,11 +55,10 @@ const getAllVideos = asyncHandler(async (req, res) => {
                 isPublished: 1,
                 createdAt: 1,
                 updatedAt: 1,
-                owner: {
-                    _id: "$ownerDetails._id",
-                    username: "$ownerDetails.username",
-                    email: "$ownerDetails.email"
-                }
+                owner_id: "$ownerDetails._id",
+                username: "$ownerDetails.username",
+                email: "$ownerDetails.email"
+                
             }
         }
     ];
