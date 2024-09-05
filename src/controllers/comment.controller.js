@@ -8,8 +8,8 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 const getVideoComments = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
 
-    if (!videoId) {
-        throw new ApiError(400, "Video ID is not specified");
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid Video ID");
     }
 
     const { page = 1, limit = 10 } = req.query;
@@ -21,44 +21,33 @@ const getVideoComments = asyncHandler(async (req, res) => {
     }
 
     const comments = await Comment.aggregate([
-        { $match: { video:new mongoose.Types.ObjectId(videoId) } },
+        { $match: { video: new mongoose.Types.ObjectId(videoId) } },
         {
             $lookup: {
                 from: 'users',
-                localField: 'owner', // Correct the field name
+                localField: 'owner',
                 foreignField: '_id',
                 as: 'userDetails',
-                pipeline:[
-                    {
-                        $project:{
-                            _id:1,
-                            username:1
-                        }
-                    }
-                ]
             }
         },
-        { $unwind: '$userDetails' }, // Unwind the userDetails array
-        { $skip: (pageNumber - 1) * limitNumber }, // Skip the documents for pagination
-        { $limit: limitNumber }, // Limit the number of documents returned
+        { $unwind: '$userDetails' },
+        { $skip: (pageNumber - 1) * limitNumber },
+        { $limit: limitNumber },
         {
             $project: {
                 _id: 1,
-                content: 1, 
+                content: 1,
                 createdAt: 1,
-                video:1,
-                userDetails: 1
+                video: 1,
+                username: "$userDetails.username",
+                avatar: "$userDetails.avatar",
             }
         }
     ]);
 
-    if (comments.length === 0) {
-        throw new ApiError(404, "No comments found for this video");
-    }
-
     return res
         .status(200)
-        .json(new ApiResponse(200, comments[0], "All comments fetched successfully", {
+        .json(new ApiResponse(200, comments, "All comments fetched successfully", {
             page: pageNumber,
             limit: limitNumber
         }));
@@ -66,8 +55,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
 
 const addComment = asyncHandler(async (req, res) => {
     const { content } = req.body;
-    const userId = req.user._id
-    console.log(userId);
+    const userId = req.user._id;
     
     if (!content || content.trim() === "") {
         throw new ApiError(400, "Please write something in the comment section");
@@ -78,26 +66,56 @@ const addComment = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Video ID is not specified");
     }
 
+    // Create the new comment document
     const newComment = new Comment({
         video: videoId,
         content,
-        owner: userId// Make sure req.user is populated by authentication middleware
+        owner: userId // Ensure req.user is populated by authentication middleware
     });
 
+    // Save the comment to the database
     await newComment.save();
 
-    return res
-        .status(201)
-        .json
-        (
-            new ApiResponse
-                (
-                    201,
-                    newComment,
-                    "Comment added successfully"
-                )
-        );
+    // Use aggregation to fetch the comment along with the owner's details
+    const commentsWithOwnerDetails = await Comment.aggregate([
+        { $match: { _id: newComment._id } },
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'owner',
+                foreignField: '_id',
+                as: 'userDetails',
+            }
+        },
+        { $unwind: '$userDetails' },
+        {
+            $project: {
+                _id: 1,
+                content: 1,
+                createdAt: 1,
+                video: 1,
+                username:'$userDetails.username',
+                avatar:'$userDetails.avatar',
+                email:'$userDetails.email',
+                owner: 1
+            }
+        }
+    ]);
+
+    if (commentsWithOwnerDetails.length === 0) {
+        throw new ApiError(404, "No comment details found");
+    }
+
+    // Return the response with the owner's details included
+    return res.status(201).json(
+        new ApiResponse(
+            201,
+            commentsWithOwnerDetails[0], // Return the enriched comment with owner's details
+            "Comment added successfully"
+        )
+    );
 });
+
 
 const updateComment = asyncHandler(async (req, res) => {
     const { commentId } = req.params;
@@ -159,9 +177,30 @@ const deleteComment = asyncHandler(async (req, res) => {
         );
 });
 
+const getCommentCount = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid Video ID");
+    }
+
+    const count = await Comment.countDocuments({ video: videoId });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { count },
+            "Comment count fetched successfully"
+        )
+    );
+});
+
+
+
 export {
     getVideoComments,
     addComment,
     updateComment,
-    deleteComment
+    deleteComment,
+    getCommentCount
 };
