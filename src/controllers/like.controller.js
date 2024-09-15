@@ -22,7 +22,6 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
         return res.status(200).json(new ApiResponse(200, {}, "Video liked successfully"));
     }
 });
-
 const toggleCommentLike = asyncHandler(async (req, res) => {
     const { commentId } = req.params;
     const userId = req.user._id;
@@ -41,7 +40,6 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
         return res.status(200).json(new ApiResponse(200, {}, "Comment liked successfully"));
     }
 });
-
 const toggleTweetLike = asyncHandler(async (req, res) => {
     const { tweetId } = req.params;
     const userId = req.user._id;
@@ -60,7 +58,6 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
         return res.status(200).json(new ApiResponse(200, {}, "Tweet liked successfully"));
     }
 });
-
 const getLikedVideos = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
@@ -100,7 +97,6 @@ const getLikedVideos = asyncHandler(async (req, res) => {
 
     return res.status(200).json(new ApiResponse(200, likes[0], "All liked videos found by a specific user"));
 });
-
 const getLikeCount = asyncHandler(async (req, res) => {
     const { type, id } = req.params; // Correctly destructuring type and id from params
 
@@ -130,8 +126,6 @@ const getLikeCount = asyncHandler(async (req, res) => {
     console.log(`Like count for ${type} with ID ${id}: ${likeCount}`); // Debugging log
     return res.status(200).json(new ApiResponse(200, { likeCount }, `Like count retrieved successfully for ${type}`));
 });
-
-
 const getMostLikedTweets = asyncHandler(async (req, res) => {
     console.log('getMostLikedTweets route accessed');
     let topTweets = await Like.aggregate([
@@ -208,7 +202,6 @@ const getMostLikedTweets = asyncHandler(async (req, res) => {
 
     return res.status(200).json(new ApiResponse(200, topTweets, "Top 3 liked tweets found"));
 });
-
 const isVideoLiked = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
     const userId = req.user._id;
@@ -221,7 +214,6 @@ const isVideoLiked = asyncHandler(async (req, res) => {
 
     return res.status(200).json(new ApiResponse(200, { isLiked: !!like }, "Video like status retrieved successfully"));
 });
-
 const isCommentLiked = asyncHandler(async (req, res) => {
     const { commentId } = req.params;
     const userId = req.user._id;
@@ -234,7 +226,6 @@ const isCommentLiked = asyncHandler(async (req, res) => {
 
     return res.status(200).json(new ApiResponse(200, { isLiked: !!like }, "Comment like status retrieved successfully"));
 });
-
 const isTweetLiked = asyncHandler(async (req, res) => {
     const { tweetId } = req.params;
     const userId = req.user._id;

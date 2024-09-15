@@ -112,8 +112,6 @@ const getPlaylistById = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, playlist[0], "Playlist fetched successfully"));
 });
 
-
-
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
     const {playlistId, videoId} = req.params
     if(!isValidObjectId(playlistId)){
@@ -191,7 +189,6 @@ const updatePlaylist = asyncHandler(async (req, res) => {
     res.status(200)
     .json(new ApiResponse(200,playlist,"playlist updated successfully")) 
 })
-
 
 export {
     createPlaylist,
